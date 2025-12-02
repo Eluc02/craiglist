@@ -81,7 +81,8 @@ export default function Home() {
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Describe what you need (e.g., 'Cheap apartment in Mission with sunlight')..."
-                className="block w-full rounded-full border-0 py-4 pl-12 pr-12 text-gray-900 shadow-lg ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 dark:bg-card dark:text-white dark:ring-border"
+                style={{ colorScheme: 'light' }}
+                className="block w-full rounded-full border-0 py-4 pl-12 pr-12 text-black bg-white opacity-100 shadow-lg ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
               />
               <button
                 type="submit"

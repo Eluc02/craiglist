@@ -12,6 +12,7 @@ interface Listing {
     images: string[];
     metadata: {
         trust_score?: number;
+        trust_reason?: string;
         contact?: string;
         url?: string;
     };
@@ -23,6 +24,7 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
+    console.log('ListingCard listing:', listing.id, 'similarity:', listing.similarity);
 
     // Calibrate the raw vector score to a user-friendly percentage
     // Raw scores typically range from 0.2 (irrelevant) to 0.45 (highly relevant) for this model/data
@@ -75,35 +77,60 @@ export function ListingCard({ listing }: ListingCardProps) {
                     {listing.description}
                 </p>
 
-                <div className="mt-auto flex items-center justify-between border-t pt-4">
-                    <div className="flex items-center gap-2">
-                        {listing.similarity !== undefined ? (
-                            <>
-                                {isHighMatch ? (
-                                    <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                        <ShieldCheck className="h-3 w-3" />
-                                        High Match
+                <div className="mt-auto flex flex-col gap-2 border-t pt-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            {listing.similarity !== undefined ? (
+                                <>
+                                    {isHighMatch ? (
+                                        <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                            <ShieldCheck className="h-3 w-3" />
+                                            High Match
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            Possible Match
+                                        </span>
+                                    )}
+                                    <span className="text-xs text-muted-foreground">
+                                        Match: {Math.round(displayScore * 100)}%
                                     </span>
-                                ) : (
-                                    <span className="flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        Possible Match
-                                    </span>
-                                )}
+                                </>
+                            ) : (
                                 <span className="text-xs text-muted-foreground">
-                                    Match: {Math.round(displayScore * 100)}%
+                                    New Listing
                                 </span>
-                            </>
-                        ) : (
-                            <span className="text-xs text-muted-foreground">
-                                New Listing
-                            </span>
-                        )}
+                            )}
+                        </div>
+
+                        <span className="rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                            View Details
+                        </span>
                     </div>
 
-                    <span className="rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                        View Details
-                    </span>
+                    {/* Trust Score Indicator */}
+                    {listing.metadata.trust_score !== undefined && (
+                        <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-2 text-xs">
+                            <div className="flex items-center gap-2">
+                                {listing.metadata.trust_score > 0.8 ? (
+                                    <ShieldCheck className="h-3 w-3 text-green-600" />
+                                ) : listing.metadata.trust_score > 0.5 ? (
+                                    <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                                ) : (
+                                    <AlertTriangle className="h-3 w-3 text-red-500" />
+                                )}
+                                <span className={`font-medium ${listing.metadata.trust_score > 0.8 ? 'text-green-600' :
+                                    listing.metadata.trust_score > 0.5 ? 'text-yellow-600' : 'text-red-600'
+                                    }`}>
+                                    Trust Score: {Math.round(listing.metadata.trust_score * 100)}%
+                                </span>
+                            </div>
+                            <p className="text-muted-foreground">
+                                {listing.metadata.trust_reason}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </Link>

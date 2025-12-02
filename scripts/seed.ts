@@ -4,9 +4,7 @@ dotenv.config({ path: '.env.local' });
 console.log('Database URL exists:', !!process.env.DATABASE_URL);
 console.log('OpenRouter Key exists:', !!process.env.OPENROUTER_API_KEY);
 
-// Use dynamic imports to ensure env vars are loaded before modules are initialized
-// const { db } = await import('../lib/db');
-// const { generateEmbedding } = await import('../lib/ai');
+
 
 const sampleListings = [
     // Housing
@@ -407,7 +405,7 @@ async function seed() {
 
     // Dynamic imports here to ensure env vars are loaded first
     const { db } = await import('../lib/db');
-    const { generateEmbedding } = await import('../lib/ai');
+    const { generateEmbedding, analyzeListingTrust } = await import('../lib/ai');
 
     try {
         // Drop table to ensure schema update
@@ -437,15 +435,24 @@ async function seed() {
         console.log('Cleared existing listings.');
 
         for (const listing of sampleListings) {
-            const textToEmbed = `${listing.title} ${listing.description} ${listing.location} ${listing.category}`;
-            const embedding = await generateEmbedding(textToEmbed);
-
+            // Generate embedding
+            const embedding = await generateEmbedding(
+                `${listing.title} ${listing.description} ${listing.category} ${listing.location}`
+            );
             // pgvector requires array string format like '[1,2,3]'
             const embeddingString = `[${embedding.join(',')}]`;
 
+            // Analyze trust
+            console.log(`Analyzing trust for: ${listing.title}`);
+            const trustAnalysis = await analyzeListingTrust(listing);
+
             // Images are now at top level
             const images = listing.images || [];
-            const metadata = listing.metadata;
+            const metadata = {
+                ...listing.metadata,
+                trust_score: trustAnalysis.score,
+                trust_reason: trustAnalysis.reason
+            };
 
             await db.query(
                 `INSERT INTO listings (title, description, price, location, category, images, metadata, embedding)

@@ -84,12 +84,14 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        return new Response(readableStream, {
+        const response = new Response(readableStream, {
             headers: {
                 'Content-Type': 'text/plain; charset=utf-8',
                 'x-listings-data': JSON.stringify(listings),
             },
         });
+        console.log('Sent listings data. First listing similarity:', listings[0]?.similarity);
+        return response;
 
     } catch (error) {
         console.error('Search API Error:', error);
