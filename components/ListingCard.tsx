@@ -24,15 +24,19 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
-    console.log('ListingCard listing:', listing.id, 'similarity:', listing.similarity);
 
     // Calibrate the raw vector score to a user-friendly percentage
-    // Raw scores typically range from 0.2 (irrelevant) to 0.45 (highly relevant) for this model/data
+    // Using a non-linear curve to boost lower scores (like "car" -> "Honda Civic")
+    // while keeping high scores (like "tutor" -> "Math Tutor") near 100%
     const getCalibratedScore = (rawScore: number) => {
-        const min = 0.20;
-        const max = 0.45;
-        const scaled = (rawScore - min) / (max - min);
-        return Math.min(Math.max(scaled, 0), 1);
+        const min = 0.22;
+        const max = 0.48;
+        // Linear scaling
+        let scaled = (rawScore - min) / (max - min);
+        // Clamp between 0 and 1
+        scaled = Math.min(Math.max(scaled, 0), 1);
+        // Apply square root to boost lower scores (0.25 -> 0.5)
+        return Math.sqrt(scaled);
     };
 
     const displayScore = listing.similarity !== undefined ? getCalibratedScore(listing.similarity) : 0;
