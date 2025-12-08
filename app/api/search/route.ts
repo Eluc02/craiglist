@@ -20,13 +20,46 @@ export async function POST(req: NextRequest) {
             `SELECT id, title, description, price, location, category, images, metadata,
               1 - (embedding <=> $1) as similarity
        FROM listings
-       ORDER BY embedding <=> $1
-       LIMIT 5`,
+       ORDER BY similarity DESC
+       LIMIT 20`, // Fetch more candidates for reranking
             [embeddingString]
         );
 
-        // 3. Use LLM to summarize and generate a response
-        const listingsContext = listings.map((l, i) => `
+        // 3. Hybrid Reranking (Heuristic Boost)
+        const boostedListings = listings.map((listing) => {
+            let boost = 0;
+            const lowerQuery = userQuery.toLowerCase();
+            const lowerTitle = listing.title.toLowerCase();
+            const lowerDesc = listing.description.toLowerCase();
+
+            // Bedroom boost (e.g. "1 br", "1 bedroom", "1bd")
+            const bedroomRegex = /(\d+)\s*(?:br|bed|bd)/i;
+            const queryBed = lowerQuery.match(bedroomRegex);
+
+            if (queryBed) {
+                const bedCount = queryBed[1];
+                // Check if listing matches this bed count
+                const listingBedRegex = new RegExp(`${bedCount}\\s*(?:br|bed|bd)`, 'i');
+                if (listingBedRegex.test(lowerTitle) || listingBedRegex.test(lowerDesc)) {
+                    boost += 0.15; // Significant boost for exact feature match
+                    console.log(`Boosting ${listing.title} for ${bedCount}BR match`);
+                }
+            }
+
+            return {
+                ...listing,
+                similarity: (listing.similarity || 0) + boost,
+                originalSimilarity: listing.similarity
+            };
+        });
+
+        // Sort by new score and take top 5
+        const finalResults = boostedListings
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 5);
+
+        // 4. Use LLM to summarize and generate a response
+        const listingsContext = finalResults.map((l, i) => `
       Option ${i + 1}:
       Title: ${l.title}
       Price: $${l.price}
@@ -87,10 +120,10 @@ export async function POST(req: NextRequest) {
         const response = new Response(readableStream, {
             headers: {
                 'Content-Type': 'text/plain; charset=utf-8',
-                'x-listings-data': JSON.stringify(listings),
+                'x-listings-data': JSON.stringify(finalResults),
             },
         });
-        console.log('Sent listings data. First listing similarity:', listings[0]?.similarity);
+        console.log('Sent listings data. Top match similarity:', finalResults[0]?.similarity);
         return response;
 
     } catch (error) {
